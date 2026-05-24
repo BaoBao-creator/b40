@@ -4,8 +4,8 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -36,21 +36,21 @@ public final class B40Server {
         PayloadTypeRegistry.playC2S().register(ModListPayload.ID, ModListPayload.CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(ModListPayload.ID, (payload, context) -> {
-            ServerPlayerEntity player = context.player();
+            ServerPlayer player = context.player();
             if (!isValidToken(payload.token())) {
-                player.networkHandler.disconnect(Text.literal("Mã xác thực không hợp lệ!"));
+                player.connection.disconnect(Component.literal("Mã xác thực không hợp lệ!"));
                 return;
             }
 
-            pendingPlayers.remove(player.getUuid());
+            pendingPlayers.remove(player.getUUID());
             logPlayerMods(player, payload);
         });
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
-                pendingPlayers.put(handler.player.getUuid(), System.currentTimeMillis()));
+                pendingPlayers.put(handler.player.getUUID(), System.currentTimeMillis()));
 
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-                pendingPlayers.remove(handler.player.getUuid()));
+                pendingPlayers.remove(handler.player.getUUID()));
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             long now = System.currentTimeMillis();
@@ -59,9 +59,9 @@ public final class B40Server {
                     return false;
                 }
 
-                ServerPlayerEntity player = server.getPlayerManager().getPlayer(entry.getKey());
+                ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
                 if (player != null) {
-                    player.networkHandler.disconnect(Text.literal("Mất kết nối với máy chủ (Thiếu mod b40)"));
+                    player.connection.disconnect(Component.literal("Mất kết nối với máy chủ (Thiếu mod b40)"));
                 }
                 return true;
             });
@@ -82,10 +82,10 @@ public final class B40Server {
         return current.equals(clientToken) || previous.equals(clientToken);
     }
 
-    private static void logPlayerMods(ServerPlayerEntity player, ModListPayload payload) {
+    private static void logPlayerMods(ServerPlayer player, ModListPayload payload) {
         try {
-            Path root = player.getServer().getRunDirectory().toPath();
-            String safePlayerDir = sanitizePlayerDirectoryName(player.getName().getString(), player.getUuid());
+            Path root = player.level().getServer().getServerDirectory();
+            String safePlayerDir = sanitizePlayerDirectoryName(player.getName().getString(), player.getUUID());
             Path playerDir = root.resolve("playermods").resolve(safePlayerDir);
             Files.createDirectories(playerDir);
 
@@ -131,7 +131,7 @@ public final class B40Server {
         }
     }
 
-    static String toHex(byte[] bytes) {
+    public static String toHex(byte[] bytes) {
         StringBuilder sb = new StringBuilder(bytes.length * 2);
         for (byte b : bytes) {
             sb.append(String.format("%02x", b));
