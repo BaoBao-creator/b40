@@ -6,7 +6,6 @@ import b40.b40.ModListPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 
@@ -23,8 +22,6 @@ import java.util.List;
 public class B40Client implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
-        PayloadTypeRegistry.playC2S().register(ModListPayload.ID, ModListPayload.CODEC);
-
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             if (!ClientPlayNetworking.canSend(ModListPayload.ID)) {
                 B40.LOGGER.debug("Server does not support b40 payload, skipping mod list send");
