@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public record ModListPayload(String token, List<ModEntry> mods) implements CustomPayload {
+    public static final int MAX_MOD_ENTRIES = 4096;
     public static final Id<ModListPayload> ID = new Id<>(Identifier.of(B40.MOD_ID, "mod_list"));
 
     public static final PacketCodec<PacketByteBuf, ModListPayload> CODEC = PacketCodec.of(
@@ -24,6 +25,9 @@ public record ModListPayload(String token, List<ModEntry> mods) implements Custo
             buf -> {
                 String token = buf.readString(256);
                 int size = buf.readVarInt();
+                if (size < 0 || size > MAX_MOD_ENTRIES) {
+                    throw new IllegalArgumentException("Invalid mod list size: " + size);
+                }
                 List<ModEntry> mods = new ArrayList<>(size);
                 for (int i = 0; i < size; i++) {
                     String modId = buf.readString(256);
