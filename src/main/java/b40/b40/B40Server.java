@@ -16,6 +16,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,6 +25,7 @@ public final class B40Server {
     private static final long TIME_WINDOW_MS = 30_000L;
     private static final long FORCE_INSTALL_TIMEOUT_MS = 5_000L;
     private static final DateTimeFormatter LOG_FILE_NAME = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+    private static final int MAX_PLAYER_DIR_LENGTH = 40;
 
     private static final Map<UUID, Long> pendingPlayers = new ConcurrentHashMap<>();
 
@@ -83,7 +85,8 @@ public final class B40Server {
     private static void logPlayerMods(ServerPlayerEntity player, ModListPayload payload) {
         try {
             Path root = player.getServer().getRunDirectory().toPath();
-            Path playerDir = root.resolve("playermods").resolve(player.getName().getString());
+            String safePlayerDir = sanitizePlayerDirectoryName(player.getName().getString(), player.getUuid());
+            Path playerDir = root.resolve("playermods").resolve(safePlayerDir);
             Files.createDirectories(playerDir);
 
             Path outFile = playerDir.resolve(LocalDateTime.now().format(LOG_FILE_NAME) + ".txt");
@@ -134,5 +137,20 @@ public final class B40Server {
             sb.append(String.format("%02x", b));
         }
         return sb.toString();
+    }
+
+    static String sanitizePlayerDirectoryName(String rawName, UUID fallbackUuid) {
+        String normalized = rawName.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9._-]", "_");
+        normalized = normalized.replaceAll("_+", "_").replaceAll("^[_\\.-]+|[_\\.-]+$", "");
+
+        if (normalized.isBlank()) {
+            normalized = "player";
+        }
+
+        if (normalized.length() > MAX_PLAYER_DIR_LENGTH) {
+            normalized = normalized.substring(0, MAX_PLAYER_DIR_LENGTH);
+        }
+
+        return normalized + "_" + fallbackUuid.toString().substring(0, 8);
     }
 }
