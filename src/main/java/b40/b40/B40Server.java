@@ -23,7 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class B40Server {
     private static final long TIME_WINDOW_MS = 30_000L;
-    private static final long FORCE_INSTALL_TIMEOUT_MS = 5_000L;
+    private static final long FORCE_INSTALL_TIMEOUT_MS = 20_000L;
+    private static final int TOKEN_ACCEPTANCE_WINDOWS = 2;
     private static final DateTimeFormatter LOG_FILE_NAME = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
     private static final int MAX_PLAYER_DIR_LENGTH = 40;
 
@@ -38,11 +39,13 @@ public final class B40Server {
         ServerPlayNetworking.registerGlobalReceiver(ModListPayload.ID, (payload, context) -> {
             ServerPlayer player = context.player();
             if (!isValidToken(payload.token())) {
+                B40.LOGGER.warn("Disconnecting {}: invalid b40 token", player.getName().getString());
                 player.connection.disconnect(Component.literal("Mã xác thực không hợp lệ!"));
                 return;
             }
 
             pendingPlayers.remove(player.getUUID());
+            B40.LOGGER.info("Accepted b40 attestation from {}", player.getName().getString());
             logPlayerMods(player, payload);
         });
 
@@ -61,6 +64,8 @@ public final class B40Server {
 
                 ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
                 if (player != null) {
+                    long waited = now - entry.getValue();
+                    B40.LOGGER.warn("Disconnecting {}: no b40 payload after {} ms", player.getName().getString(), waited);
                     player.connection.disconnect(Component.literal("Mất kết nối với máy chủ (Thiếu mod b40)"));
                 }
                 return true;
@@ -77,9 +82,13 @@ public final class B40Server {
     }
 
     private static boolean isValidToken(String clientToken) {
-        String current = createCurrentToken(System.currentTimeMillis());
-        String previous = createCurrentToken(System.currentTimeMillis() - TIME_WINDOW_MS);
-        return current.equals(clientToken) || previous.equals(clientToken);
+        long now = System.currentTimeMillis();
+        for (int offset = 0; offset <= TOKEN_ACCEPTANCE_WINDOWS; offset++) {
+            if (createCurrentToken(now - (offset * TIME_WINDOW_MS)).equals(clientToken)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void logPlayerMods(ServerPlayer player, ModListPayload payload) {

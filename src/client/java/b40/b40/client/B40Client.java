@@ -20,24 +20,55 @@ import java.util.Comparator;
 import java.util.List;
 
 public class B40Client implements ClientModInitializer {
+    private static final int SEND_RETRY_COUNT = 5;
+    private static final long SEND_RETRY_INTERVAL_MS = 750L;
     @Override
     public void onInitializeClient() {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
-            if (!ClientPlayNetworking.canSend(ModListPayload.ID)) {
-                B40.LOGGER.debug("Server does not support b40 payload, skipping mod list send");
-                return;
-            }
-
             try {
-                String token = B40Server.createCurrentToken(System.currentTimeMillis());
                 List<ModListPayload.ModEntry> mods = collectMods();
-                ClientPlayNetworking.send(new ModListPayload(token, mods));
+                sendAttestationWithRetry(client, mods, 0);
             } catch (Exception ex) {
-                B40.LOGGER.error("Cannot send mod list payload", ex);
+                B40.LOGGER.error("Cannot prepare mod list payload", ex);
             }
         });
     }
 
+
+    private static void sendAttestationWithRetry(net.minecraft.client.Minecraft client, List<ModListPayload.ModEntry> mods, int attempt) {
+        if (!ClientPlayNetworking.canSend(ModListPayload.ID)) {
+            if (attempt >= SEND_RETRY_COUNT) {
+                B40.LOGGER.error("Cannot send mod list payload: channel unavailable after {} attempts", attempt + 1);
+                return;
+            }
+            try {
+                Thread.sleep(SEND_RETRY_INTERVAL_MS);
+            } catch (InterruptedException interruptedException) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+            client.execute(() -> sendAttestationWithRetry(client, mods, attempt + 1));
+            return;
+        }
+
+        try {
+            String token = B40Server.createCurrentToken(System.currentTimeMillis());
+            ClientPlayNetworking.send(new ModListPayload(token, mods));
+            B40.LOGGER.info("Sent b40 attestation payload on attempt {}", attempt + 1);
+        } catch (Exception ex) {
+            if (attempt >= SEND_RETRY_COUNT) {
+                B40.LOGGER.error("Cannot send mod list payload after {} attempts", attempt + 1, ex);
+                return;
+            }
+            B40.LOGGER.warn("b40 payload send failed on attempt {}, retrying", attempt + 1, ex);
+            try {
+                Thread.sleep(SEND_RETRY_INTERVAL_MS);
+            } catch (InterruptedException interruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            client.execute(() -> sendAttestationWithRetry(client, mods, attempt + 1));
+        }
+    }
     private static List<ModListPayload.ModEntry> collectMods() {
         List<ModListPayload.ModEntry> entries = new ArrayList<>();
         for (ModContainer mod : FabricLoader.getInstance().getAllMods()) {
