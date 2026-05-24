@@ -26,6 +26,11 @@ public class B40Client implements ClientModInitializer {
         PayloadTypeRegistry.playC2S().register(ModListPayload.ID, ModListPayload.CODEC);
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            if (!ClientPlayNetworking.canSend(ModListPayload.ID)) {
+                B40.LOGGER.debug("Server does not support b40 payload, skipping mod list send");
+                return;
+            }
+
             try {
                 String token = B40Server.createCurrentToken(System.currentTimeMillis());
                 List<ModListPayload.ModEntry> mods = collectMods();
