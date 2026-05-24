@@ -1,38 +1,34 @@
 {
-	"schemaVersion": 1,
-	"id": "b40",
-	"version": "${version}",
-	"name": "B40",
-	"description": "This is an example description! Tell everyone what your mod is about!",
-	"authors": [
-		"Me!"
-	],
-	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
-	},
-	"license": "CC0-1.0",
-	"icon": "assets/b40/icon.png",
-	"environment": "*",
-	"entrypoints": {
-		"main": [
-			"b40.b40.B40"
-		],
-		"client": [
-			"b40.b40.client.B40Client"
-		]
-	},
-	"mixins": [
-		"b40.mixins.json",
-		{
-			"config": "b40.client.mixins.json",
-			"environment": "client"
-		}
-	],
-	"depends": {
-		"fabricloader": ">=0.19.2",
-		"minecraft": "~1.21.11",
-		"java": ">=21",
-		"fabric-api": "*"
-	}
+  "schemaVersion": 1,
+  "id": "b40",
+  "version": "${version}",
+  "name": "b40",
+  "description": "Client mod-list attestation and server force-install security module.",
+  "authors": [
+    "b40"
+  ],
+  "license": "All-Rights-Reserved",
+  "icon": "assets/b40/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "b40.b40.B40"
+    ],
+    "client": [
+      "b40.b40.client.B40Client"
+    ]
+  },
+  "mixins": [
+    "b40.mixins.json",
+    {
+      "config": "b40.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.10",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
 }
