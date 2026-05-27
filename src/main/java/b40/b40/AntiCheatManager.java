@@ -293,25 +293,18 @@ public final class AntiCheatManager {
     }
 
     private boolean hasPermission(CommandSourceStack source) {
-        if (source.getEntity() instanceof ServerPlayer player) return isOp(player);
+        if (source.getEntity() == null) return true;
+        if (source.getEntity() instanceof ServerPlayer player) return player.canUseGameMasterBlocks();
         return false;
     }
 
     private boolean isOp(ServerPlayer player) {
-        if (currentServer == null) return false;
-
-        Path ops = currentServer.getFile("ops.json");
-        if (!Files.exists(ops)) return false;
-        try {
-            String content = Files.readString(ops);
-            return content.contains(player.getStringUUID()) || content.contains("\"name\": \"" + player.getName().getString() + "\"");
-        } catch (IOException e) {
-            return false;
-        }
+        return player.canUseGameMasterBlocks();
     }
 
     private void kick(ServerPlayer player, String reason) {
         sessions.remove(player.getUUID());
+        clearCheckEffects(player);
         player.connection.disconnect(Component.literal("§cB40 Security Gateway\n§7Connection terminated by server policy.\n§fReason: §e" + reason + "\n§8If you believe this is a mistake, contact server staff."));
     }
 
