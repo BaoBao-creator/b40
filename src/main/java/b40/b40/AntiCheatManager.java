@@ -94,7 +94,7 @@ public final class AntiCheatManager {
         AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> sessions.containsKey(player.getUUID()) ? net.minecraft.world.InteractionResult.FAIL : net.minecraft.world.InteractionResult.PASS);
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> sessions.containsKey(player.getUUID()) ? net.minecraft.world.InteractionResult.FAIL : net.minecraft.world.InteractionResult.PASS);
         PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> !sessions.containsKey(player.getUUID()));
-        ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, sender, params) -> !sessions.containsKey(sender.getUUID()));
+        ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, sender, params) -> sender == null || !sessions.containsKey(sender.getUUID()));
     }
 
     private void registerNetworking() {
@@ -165,16 +165,36 @@ public final class AntiCheatManager {
         List<ModFingerprint> picked = new ArrayList<>();
         if (indexes.equalsIgnoreCase("all")) picked.addAll(mods);
         else {
+            Set<Integer> uniqueIndexes = new LinkedHashSet<>();
             for (String token : indexes.split("\\s+")) {
-                int idx = Integer.parseInt(token) - 1;
-                if (idx >= 0 && idx < mods.size()) picked.add(mods.get(idx));
+                try {
+                    int idx = Integer.parseInt(token) - 1;
+                    if (idx >= 0 && idx < mods.size()) {
+                        uniqueIndexes.add(idx);
+                    }
+                } catch (NumberFormatException ignored) {
+                    // ignore invalid token
+                }
+            }
+            for (Integer idx : uniqueIndexes) {
+                picked.add(mods.get(idx));
             }
         }
+        Set<String> existing = new HashSet<>();
+        for (WhitelistEntry e : whitelist) {
+            existing.add(e.id() + "|" + e.version() + "|" + e.hash());
+        }
+        int addedCount = 0;
         for (ModFingerprint m : picked) {
-            whitelist.add(new WhitelistEntry(m.id(), m.version(), m.hash()));
+            String key = m.id() + "|" + m.version() + "|" + m.hash();
+            if (existing.add(key)) {
+                whitelist.add(new WhitelistEntry(m.id(), m.version(), m.hash()));
+                addedCount++;
+            }
         }
         saveWhitelist();
-        ctx.getSource().sendSuccess(() -> Component.literal("Added " + picked.size() + " entries to whitelist."), true);
+        final int finalAddedCount = addedCount;
+        ctx.getSource().sendSuccess(() -> Component.literal("Added " + finalAddedCount + " entries to whitelist."), true);
         return 1;
     }
 
@@ -245,7 +265,10 @@ public final class AntiCheatManager {
             if (!Files.exists(whitelistPath)) {
                 Files.writeString(whitelistPath, "[]");
             }
-            whitelist.addAll(GSON.fromJson(Files.readString(whitelistPath), WL_TYPE));
+            List<WhitelistEntry> loaded = GSON.fromJson(Files.readString(whitelistPath), WL_TYPE);
+            if (loaded != null) {
+                whitelist.addAll(loaded);
+            }
         } catch (IOException e) {
             throw new RuntimeException("Unable to load whitelist", e);
         }
