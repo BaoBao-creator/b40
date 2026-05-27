@@ -9,6 +9,8 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.*;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
+import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -79,6 +81,8 @@ public final class AntiCheatManager {
             }
         });
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> sessions.containsKey(player.getUUID()) ? net.minecraft.world.InteractionResult.FAIL : net.minecraft.world.InteractionResult.PASS);
+        UseItemCallback.EVENT.register((player, world, hand) -> sessions.containsKey(player.getUUID()) ? net.minecraft.world.InteractionResult.FAIL : net.minecraft.world.InteractionResult.PASS);
+        UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> sessions.containsKey(player.getUUID()) ? net.minecraft.world.InteractionResult.FAIL : net.minecraft.world.InteractionResult.PASS);
         AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> sessions.containsKey(player.getUUID()) ? net.minecraft.world.InteractionResult.FAIL : net.minecraft.world.InteractionResult.PASS);
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> sessions.containsKey(player.getUUID()) ? net.minecraft.world.InteractionResult.FAIL : net.minecraft.world.InteractionResult.PASS);
         PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> !sessions.containsKey(player.getUUID()));
