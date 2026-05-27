@@ -3,7 +3,7 @@
   "id": "b40",
   "version": "${version}",
   "name": "b40",
-  "description": "Client mod-list attestation and server force-install security module.",
+  "description": "Empty mod shell.",
   "authors": [
     "b40"
   ],
@@ -18,13 +18,6 @@
       "b40.b40.client.B40Client"
     ]
   },
-  "mixins": [
-    "b40.mixins.json",
-    {
-      "config": "b40.client.mixins.json",
-      "environment": "client"
-    }
-  ],
   "depends": {
     "fabricloader": ">=0.16.10",
     "minecraft": "~1.21.11",
