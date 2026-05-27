@@ -115,7 +115,12 @@ public final class AntiCheatManager {
             if (payload.reason().equals("login")) {
                 verifyAgainstWhitelist(player, payload.mods());
             } else {
-                UUID target = UUID.fromString(payload.reason().substring(3));
+                UUID target;
+                try {
+                    target = UUID.fromString(payload.reason().substring(3));
+                } catch (IllegalArgumentException ex) {
+                    return;
+                }
                 pendingSelections.put(target, payload.mods());
                 ServerPlayer targetPlayer = currentServer.getPlayerList().getPlayer(target);
                 if (targetPlayer != null) {
@@ -144,7 +149,7 @@ public final class AntiCheatManager {
     }
 
     private int scanPlayerMods(CommandContext<CommandSourceStack> ctx) {
-        if (!(ctx.getSource().getEntity() instanceof ServerPlayer sender) || !isOp(sender)) return 0;
+        if (!hasPermission(ctx.getSource())) return 0;
         String name = StringArgumentType.getString(ctx, "player");
         ServerPlayer player = ctx.getSource().getServer().getPlayerList().getPlayerByName(name);
         if (player == null) return 0;
@@ -155,11 +160,11 @@ public final class AntiCheatManager {
     }
 
     private int addSelectedMods(CommandContext<CommandSourceStack> ctx) {
-        if (!(ctx.getSource().getEntity() instanceof ServerPlayer sender) || !isOp(sender)) return 0;
+        if (!hasPermission(ctx.getSource())) return 0;
         String name = StringArgumentType.getString(ctx, "player");
-        String indexes = StringArgumentType.getString(ctx, "indexes");
         ServerPlayer player = ctx.getSource().getServer().getPlayerList().getPlayerByName(name);
         if (player == null) return 0;
+        String indexes = StringArgumentType.getString(ctx, "indexes");
         List<ModFingerprint> mods = pendingSelections.get(player.getUUID());
         if (mods == null || mods.isEmpty()) return 0;
         List<ModFingerprint> picked = new ArrayList<>();
@@ -184,6 +189,11 @@ public final class AntiCheatManager {
         for (WhitelistEntry e : whitelist) {
             existing.add(e.id() + "|" + e.version() + "|" + e.hash());
         }
+        if (picked.isEmpty()) {
+            ctx.getSource().sendFailure(Component.literal("No valid indexes were provided."));
+            return 0;
+        }
+
         int addedCount = 0;
         for (ModFingerprint m : picked) {
             String key = m.id() + "|" + m.version() + "|" + m.hash();
@@ -280,6 +290,11 @@ public final class AntiCheatManager {
         } catch (IOException e) {
             throw new RuntimeException("Unable to save whitelist", e);
         }
+    }
+
+    private boolean hasPermission(CommandSourceStack source) {
+        if (source.getEntity() instanceof ServerPlayer player) return isOp(player);
+        return false;
     }
 
     private boolean isOp(ServerPlayer player) {
