@@ -6,6 +6,7 @@ import com.google.gson.reflect.TypeToken;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.*;
@@ -59,7 +60,7 @@ public final class AntiCheatManager {
         PayloadTypeRegistry.playC2S().register(ModListPayload.TYPE, ModListPayload.CODEC);
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             currentServer = server;
-            whitelistPath = server.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).resolve("config").resolve("b40-whitelist.json");
+            whitelistPath = FabricLoader.getInstance().getConfigDir().resolve("b40-whitelist.json");
             loadWhitelist();
         });
         registerEvents();
