@@ -240,7 +240,8 @@ public final class AntiCheatManager {
 
     private boolean isOp(ServerPlayer player) {
         if (currentServer == null) return false;
-        Path ops = currentServer.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).resolve("ops.json");
+
+        Path ops = currentServer.getFile("ops.json");
         if (!Files.exists(ops)) return false;
         try {
             String content = Files.readString(ops);
