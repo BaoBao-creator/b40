@@ -172,7 +172,11 @@ public final class AntiCheatManager {
     }
 
     private void beginCheck(ServerPlayer player) {
-        if (isOp(player)) return;
+        if (isOp(player)) {
+            clearCheckEffects(player);
+            sessions.remove(player.getUUID());
+            return;
+        }
         String challenge = UUID.randomUUID() + ":" + System.nanoTime();
         CheckSession s = new CheckSession(challenge, player.blockPosition());
         sessions.put(player.getUUID(), s);
@@ -185,6 +189,7 @@ public final class AntiCheatManager {
     private void verifyAgainstWhitelist(ServerPlayer player, List<ModFingerprint> mods) {
         if (isOp(player)) {
             sessions.remove(player.getUUID());
+            clearCheckEffects(player);
             return;
         }
         Set<String> allowed = new HashSet<>();
@@ -197,9 +202,13 @@ public final class AntiCheatManager {
             }
         }
         sessions.remove(player.getUUID());
+        clearCheckEffects(player);
+        player.displayClientMessage(Component.literal("§a[Security] Xác minh hoàn tất. Chúc bạn chơi vui!"), false);
+    }
+
+    private void clearCheckEffects(ServerPlayer player) {
         player.removeEffect(MobEffects.BLINDNESS);
         player.removeEffect(MobEffects.SLOWNESS);
-        player.displayClientMessage(Component.literal("§a[Security] Xác minh hoàn tất. Chúc bạn chơi vui!"), false);
     }
 
     private static String solveChallenge(String input) {
