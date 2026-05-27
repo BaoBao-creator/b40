@@ -17,6 +17,7 @@ import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 
 public class B40 implements ModInitializer {
+    private static final AntiCheatManager ANTI_CHEAT = new AntiCheatManager();
     public static final String MOD_ID = "b40";
 
     private static Item registerItem(String name, java.util.function.Function<Item.Properties, Item> factory) {
@@ -44,5 +45,6 @@ public class B40 implements ModInitializer {
     @Override
     public void onInitialize() {
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries -> entries.accept(ADMIN_ITEM));
+        ANTI_CHEAT.init();
     }
 }
