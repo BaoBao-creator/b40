@@ -25,6 +25,13 @@ public class AdminWandItem extends Item {
             return InteractionResult.SUCCESS;
         }
 
+        if (!player.canUseGameMasterBlocks()) {
+            player.displayClientMessage(
+                    Component.literal("You must be an operator to use this item.").withStyle(ChatFormatting.RED),
+                    true);
+            return InteractionResult.FAIL;
+        }
+
         int nextMode = (PLAYER_MODES.getOrDefault(player.getUUID(), -1) + 1) % MODES.length;
         PLAYER_MODES.put(player.getUUID(), nextMode);
 
