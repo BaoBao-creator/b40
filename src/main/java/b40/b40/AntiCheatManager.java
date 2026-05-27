@@ -69,7 +69,14 @@ public final class AntiCheatManager {
     }
 
     private void registerEvents() {
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> beginCheck(handler.getPlayer()));
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            if (!isChecksEnabled()) {
+                clearCheckEffects(handler.getPlayer());
+                sessions.remove(handler.getPlayer().getUUID());
+                return;
+            }
+            beginCheck(handler.getPlayer());
+        });
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             for (ServerPlayer p : server.getPlayerList().getPlayers()) {
                 CheckSession s = sessions.get(p.getUUID());
@@ -172,7 +179,7 @@ public final class AntiCheatManager {
     }
 
     private void beginCheck(ServerPlayer player) {
-        if (isOp(player)) {
+        if (!isChecksEnabled() || isOp(player)) {
             clearCheckEffects(player);
             sessions.remove(player.getUUID());
             return;
@@ -187,7 +194,7 @@ public final class AntiCheatManager {
     }
 
     private void verifyAgainstWhitelist(ServerPlayer player, List<ModFingerprint> mods) {
-        if (isOp(player)) {
+        if (!isChecksEnabled() || isOp(player)) {
             sessions.remove(player.getUUID());
             clearCheckEffects(player);
             return;
@@ -206,6 +213,10 @@ public final class AntiCheatManager {
         player.displayClientMessage(Component.literal("§a[Security] Xác minh hoàn tất. Chúc bạn chơi vui!"), false);
     }
 
+
+    private boolean isChecksEnabled() {
+        return currentServer != null && !currentServer.isSingleplayer();
+    }
     private void clearCheckEffects(ServerPlayer player) {
         player.removeEffect(MobEffects.BLINDNESS);
         player.removeEffect(MobEffects.SLOWNESS);
