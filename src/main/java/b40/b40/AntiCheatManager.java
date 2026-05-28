@@ -88,6 +88,10 @@ public final class AntiCheatManager {
                 }
             }
         });
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            UUID uuid = handler.getPlayer().getUUID();
+            sessions.remove(uuid); 
+        });
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> sessions.containsKey(player.getUUID()) ? net.minecraft.world.InteractionResult.FAIL : net.minecraft.world.InteractionResult.PASS);
         UseItemCallback.EVENT.register((player, world, hand) -> sessions.containsKey(player.getUUID()) ? net.minecraft.world.InteractionResult.FAIL : net.minecraft.world.InteractionResult.PASS);
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> sessions.containsKey(player.getUUID()) ? net.minecraft.world.InteractionResult.FAIL : net.minecraft.world.InteractionResult.PASS);
