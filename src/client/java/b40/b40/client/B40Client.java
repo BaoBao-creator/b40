@@ -38,13 +38,11 @@ public class B40Client implements ClientModInitializer {
         List<AntiCheatManager.ModFingerprint> out = new ArrayList<>();
         Path modsDir = FabricLoader.getInstance().getGameDir().resolve("mods");
         if (!Files.isDirectory(modsDir)) return out;
-
-        try (Stream<Path> paths = Files.list(modsDir)) {
+        try (Stream<Path> paths = Files.walk(modsDir)) {
             paths.filter(path -> Files.isRegularFile(path) && path.getFileName().toString().endsWith(".jar"))
                     .sorted()
                     .forEach(path -> out.add(readModFingerprint(path)));
         } catch (IOException ignored) {
-            // return what we have
         }
         return out;
     }
